@@ -978,27 +978,50 @@ static int version_req(struct dnspacket *pkt, const struct dnsquery *qry) {
 void logreply(const struct dnspacket *pkt, FILE *flog, int flushlog) {
   char cbuf[DNS_MAXDOMAIN + IPSIZE + 50];
   char *cp = cbuf;
+  int bufsz = sizeof(cbuf);
+  int n;
   const unsigned char *const q = pkt->p_sans - 4;
 
-  cp += sprintf(cp, "%lu ", (unsigned long)time(NULL));
+  if (bufsz > 0) {
+    n = ssprintf(cp, bufsz, "%lu ", (unsigned long)time(NULL));
+    cp += n; bufsz -= n;
+  }
 #ifndef NO_IPv6
-  if (getnameinfo(pkt->p_peer, pkt->p_peerlen,
-                  cp, NI_MAXHOST, NULL, 0,
-                  NI_NUMERICHOST) == 0)
-    cp += strlen(cp);
-  else
-    *cp++ = '?';
+  if (bufsz > 0 && getnameinfo(pkt->p_peer, pkt->p_peerlen,
+                  cp, bufsz, NULL, 0,
+                  NI_NUMERICHOST) == 0) {
+    n = strlen(cp);
+    cp += n; bufsz -= n;
+  }
+  else if (bufsz > 1) {
+    *cp++ = '?'; bufsz--;
+    *cp = '\0';
+  }
 #else
-  strcpy(cp, inet_ntoa(((struct sockaddr_in*)pkt->p_peer)->sin_addr));
-  cp += strlen(cp);
+  if (bufsz > 0) {
+    n = ssprintf(cp, bufsz, "%s", inet_ntoa(((struct sockaddr_in*)pkt->p_peer)->sin_addr));
+    cp += n; bufsz -= n;
+  }
 #endif
-  *cp++ = ' ';
-  cp += dns_dntop(pkt->p_buf + p_hdrsize, cp, DNS_MAXDOMAIN);
-  cp += sprintf(cp, " %s %s: %s/%u/%d\n",
-      dns_typename(((unsigned)q[0]<<8)|q[1]),
-      dns_classname(((unsigned)q[2]<<8)|q[3]),
-      dns_rcodename(pkt->p_buf[p_f2] & pf2_rcode),
-      pkt->p_buf[p_ancnt2], (int)(pkt->p_cur - pkt->p_buf));
+  if (bufsz > 1) {
+    *cp++ = ' '; bufsz--;
+    *cp = '\0';
+  }
+  if (bufsz > 0) {
+    n = dns_dntop(pkt->p_buf + p_hdrsize, cp, bufsz);
+    if (n > 0) {
+      cp += n; bufsz -= n;
+    }
+  }
+  if (bufsz > 0) {
+    n = ssprintf(cp, bufsz, " %s %s: %s/%u/%d\n",
+        dns_typename(((unsigned)q[0]<<8)|q[1]),
+        dns_classname(((unsigned)q[2]<<8)|q[3]),
+        dns_rcodename(pkt->p_buf[p_f2] & pf2_rcode),
+        pkt->p_buf[p_ancnt2], (int)(pkt->p_cur - pkt->p_buf));
+    cp += n; bufsz -= n;
+  }
+
   if (flushlog)
     write(fileno(flog), cbuf, cp - cbuf);
   else
