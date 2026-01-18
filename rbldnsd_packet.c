@@ -158,29 +158,32 @@ parsequery(struct dnspacket *pkt, unsigned qlen,
   return 1;
 }
 
-#define digit(c) ((c) >= '0' && (c) <= '9')
-#define d2n(c) ((unsigned)((c) - '0'))
-
 static int dntoip4addr(const unsigned char *q, ip4addr_t *ap) {
   unsigned o, a = 0;
 #define oct(q,o)					\
     switch(*q) {					\
-    case 1:						\
-      if (!digit(q[1]))					\
-        return 0;					\
-      o = d2n(q[1]);					\
+    case 1: {						\
+      unsigned d = q[1] - '0';			\
+      if (d > 9) return 0;				\
+      o = d;						\
       break;						\
-    case 2:						\
-      if (!digit(q[1]) || !digit(q[2]))			\
-        return 0;					\
-      o = d2n(q[1]) * 10 + d2n(q[2]);			\
+    }							\
+    case 2: {						\
+      unsigned d1 = q[1] - '0';			\
+      unsigned d2 = q[2] - '0';			\
+      if (d1 > 9 || d2 > 9) return 0;		\
+      o = d1 * 10 + d2;				\
       break;						\
-    case 3:						\
-      if (!digit(q[1]) || !digit(q[2]) || !digit(q[3]))	\
-        return 0;					\
-      o = d2n(q[1]) * 100 + d2n(q[2]) * 10 + d2n(q[3]);	\
-      if (o > 255) return 0;				\
+    }							\
+    case 3: {						\
+      unsigned d1 = q[1] - '0';			\
+      unsigned d2 = q[2] - '0';			\
+      unsigned d3 = q[3] - '0';			\
+      if (d1 > 9 || d2 > 9 || d3 > 9) return 0;	\
+      o = d1 * 100 + d2 * 10 + d3;			\
+      if (o > 255) return 0;			\
       break;						\
+    }							\
     default: return 0;					\
     }
   oct(q,o); a |= o;  q += *q + 1;
@@ -192,19 +195,23 @@ static int dntoip4addr(const unsigned char *q, ip4addr_t *ap) {
 #undef oct
 }
 
+#define HEXVAL(c) \
+  ((unsigned)((c) - '0') <= 9 ? (c) - '0' : \
+   (unsigned)((c) - 'a') <= 5 ? (c) - 'a' + 10 : 255)
+
 static int dntoip6addr(const unsigned char *q, ip6oct_t ap[IP6ADDR_FULL]) {
-  unsigned o1, o2, c;
+  unsigned o1, o2, c, v;
   for(c = IP6ADDR_FULL; c; ) {
-    if (*q++ != 1)
-      return 0;
-    if (digit(*q)) o2 = d2n(*q++);
-    else if (*q >= 'a' && *q <= 'f') o2 = *q++ - 'a' + 10;
-    else return 0;
-    if (*q++ != 1)
-      return 0;
-    if (digit(*q)) o1 = d2n(*q++);
-    else if (*q >= 'a' && *q <= 'f') o1 = *q++ - 'a' + 10;
-    else return 0;
+    if (*q++ != 1) return 0;
+    v = HEXVAL(*q);
+    if (v > 15) return 0;
+    o2 = v; q++;
+
+    if (*q++ != 1) return 0;
+    v = HEXVAL(*q);
+    if (v > 15) return 0;
+    o1 = v; q++;
+
     ap[--c] = (o1 << 4) | o2;
   }
   return 1;
