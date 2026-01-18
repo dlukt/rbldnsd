@@ -1590,7 +1590,7 @@ walk_tbm_node(const struct tbm_node *node, unsigned pos,
   btrie_oct_t pbit = 0x80 >> (pos % 8);
   const void **data_p = tbm_data_p(node, pfx, plen);
 
-  if (pos >= BTRIE_MAX_PREFIX) {
+  if (pos > BTRIE_MAX_PREFIX) {
     /* This can/should not happen, but don't overwrite buffers if it does. */
     return;
   }
@@ -1599,22 +1599,24 @@ walk_tbm_node(const struct tbm_node *node, unsigned pos,
     ctx->callback(prefix, pos, *data_p, 0, ctx->user_data);
 
   /* walk children */
-  if (plen < TBM_STRIDE - 1) {
-    /* children are internal prefixes in same node */
-    walk_tbm_node(node, pos + 1, pfx << 1, plen + 1, ctx);
-    prefix[pbyte] |= pbit;
-    walk_tbm_node(node, pos + 1, (pfx << 1) + 1, plen + 1, ctx);
-    prefix[pbyte] &= ~pbit;
-  }
-  else {
-    /* children are extending paths */
-    const node_t *ext_path;
-    if ((ext_path = tbm_ext_path(node, pfx << 1)) != NULL)
-      walk_node(ext_path, pos + 1, ctx);
-    if ((ext_path = tbm_ext_path(node, (pfx << 1) + 1)) != NULL) {
+  if (pos < BTRIE_MAX_PREFIX) {
+    if (plen < TBM_STRIDE - 1) {
+      /* children are internal prefixes in same node */
+      walk_tbm_node(node, pos + 1, pfx << 1, plen + 1, ctx);
       prefix[pbyte] |= pbit;
-      walk_node(ext_path, pos + 1, ctx);
+      walk_tbm_node(node, pos + 1, (pfx << 1) + 1, plen + 1, ctx);
       prefix[pbyte] &= ~pbit;
+    }
+    else {
+      /* children are extending paths */
+      const node_t *ext_path;
+      if ((ext_path = tbm_ext_path(node, pfx << 1)) != NULL)
+        walk_node(ext_path, pos + 1, ctx);
+      if ((ext_path = tbm_ext_path(node, (pfx << 1) + 1)) != NULL) {
+        prefix[pbyte] |= pbit;
+        walk_node(ext_path, pos + 1, ctx);
+        prefix[pbyte] &= ~pbit;
+      }
     }
   }
 
