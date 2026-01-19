@@ -96,6 +96,9 @@ parsequery(struct dnspacket *pkt, unsigned qlen,
   register unsigned char *d;
   unsigned qlab;			/* number of labels in qDN */
 
+  if (qlen < p_hdrsize)
+    return 0;
+
   x = q + qlen - 5;	/* last possible qDN zero terminator position */
   /* qlen isn't needed anymore, it'll be used as length of qDN below */
 
