@@ -1630,17 +1630,22 @@ walk_lc_node(const struct lc_node *node, unsigned pos,
 {
   btrie_oct_t *prefix = ctx->prefix;
   unsigned end = pos + lc_len(node);
-  btrie_oct_t save_prefix = prefix[lc_shift(pos)];
+  btrie_oct_t save_prefix;
 
   if (end > BTRIE_MAX_PREFIX) {
     /* This can/should not happen, but don't overwrite buffers if it does. */
     return;
   }
 
+  if (pos < BTRIE_MAX_PREFIX)
+    save_prefix = prefix[lc_shift(pos)];
+
   /* construct full prefix to node */
-  memcpy(&prefix[lc_shift(pos)], node->prefix, lc_bytes(node, pos));
-  if (end % 8)
-    prefix[end / 8] &= high_bits(end % 8);
+  if (pos < BTRIE_MAX_PREFIX) {
+    memcpy(&prefix[lc_shift(pos)], node->prefix, lc_bytes(node, pos));
+    if (end % 8)
+      prefix[end / 8] &= high_bits(end % 8);
+  }
 
   if (lc_is_terminal(node)) {
     ctx->callback(prefix, end, node->ptr.data, 0, ctx->user_data);
@@ -1649,9 +1654,11 @@ walk_lc_node(const struct lc_node *node, unsigned pos,
   else
     walk_node(node->ptr.child, end, ctx);
 
-  prefix[lc_shift(pos)] = save_prefix; /* restore parents prefix */
-  if (lc_bytes(node, pos) > 1)
-    memset(&prefix[lc_shift(pos) + 1], 0, lc_bytes(node, pos) - 1);
+  if (pos < BTRIE_MAX_PREFIX) {
+    prefix[lc_shift(pos)] = save_prefix; /* restore parents prefix */
+    if (lc_bytes(node, pos) > 1)
+      memset(&prefix[lc_shift(pos) + 1], 0, lc_bytes(node, pos) - 1);
+  }
 }
 
 static void
