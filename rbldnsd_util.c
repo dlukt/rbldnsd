@@ -507,7 +507,9 @@ char *estrdup(const char *str) {
  */
 
 int vssprintf(char *buf, int bufsz, const char *fmt, va_list ap) {
-  int r = vsnprintf(buf, bufsz, fmt, ap);
+  int r;
+  if (bufsz <= 0) return 0;
+  r = vsnprintf(buf, bufsz, fmt, ap);
   return r < 0 ? 0 : r >= bufsz ? buf[bufsz-1] = '\0', bufsz - 1 : r;
 }
 
