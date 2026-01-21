@@ -111,6 +111,12 @@ parsequery(struct dnspacket *pkt, unsigned qlen,
     return 0;
   if (q[p_qdcnt1] || q[p_qdcnt2] != 1)	/* qdcount should be == 1 */
     return 0;
+  if (q[p_ancnt1] || q[p_ancnt2])	/* ancount should be == 0 */
+    return 0;
+  if (q[p_nscnt1] || q[p_nscnt2])	/* nscount should be == 0 */
+    return 0;
+  if (q[p_arcnt1] || q[p_arcnt2] > 1)	/* arcount should be <= 1 */
+    return 0;
 
   /* parse and lowercase query DN, count and init labels */
   qlab = 0;			/* number of labels so far */
