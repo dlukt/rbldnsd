@@ -294,7 +294,7 @@ int txtsubst(char sb[TXTBUFSIZ], const char *txt,
 
 void dump_ip4(ip4addr_t a, const char *rr, const struct dataset *ds, FILE *f) {
   char name[sizeof("255.255.254.255")];
-  sprintf(name, "%u.%u.%u.%u", a&255, (a>>8)&255, (a>>16)&255, (a>>24));
+  snprintf(name, sizeof(name), "%u.%u.%u.%u", a&255, (a>>8)&255, (a>>16)&255, (a>>24));
   dump_a_txt(name, rr, ip4atos(a), ds, f);
 }
 
@@ -307,7 +307,7 @@ dump_ip4octets(FILE *f, unsigned idx, ip4addr_t a, unsigned cnt,
   };
   const unsigned bits = 8 * idx;
   for(;;) {
-    sprintf(name, fmt[idx], a&255, (a>>8)&255, (a>>16)&255, (a>>24));
+    snprintf(name, sizeof(name), fmt[idx], a&255, (a>>8)&255, (a>>16)&255, (a>>24));
     dump_a_txt(name, rr, ip4atos(a<<bits), ds, f);
     if (!--cnt)
       break;
