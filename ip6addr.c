@@ -155,9 +155,11 @@ int ip6mask(const ip6oct_t *ap, ip6oct_t *bp, unsigned n, unsigned bits) {
 
 const char *ip6atos(const ip6oct_t *ap, unsigned an) {
   static char buf[(4+1)*8+1];
+  char *const bend = buf + sizeof(buf);
   unsigned awords = an / 2;
   char *bp = buf;
   unsigned nzeros = 0, zstart = 0, i;
+  int n;
 
   if (awords > IP6ADDR_FULL / 2)
     awords = IP6ADDR_FULL / 2;
@@ -177,18 +179,25 @@ const char *ip6atos(const ip6oct_t *ap, unsigned an) {
     }
   }
 
-  for (i = 0; i < zstart; i++)
-    bp += sprintf(bp, ":%x", (((unsigned)ap[2*i]) << 8) + ap[2*i+1]);
-  if (nzeros) {
+  for (i = 0; i < zstart; i++) {
+    n = snprintf(bp, bend - bp, ":%x", (((unsigned)ap[2*i]) << 8) + ap[2*i+1]);
+    if (n < 0 || n >= bend - bp) { bp = bend - 1; break; }
+    bp += n;
+  }
+  if (nzeros && bp < bend - 1) {
     *bp++ = ':';
-    if (zstart == 0)
+    if (zstart == 0 && bp < bend - 1)
       *bp++ = ':';                /* leading "::" */
-    if (zstart + nzeros == IP6ADDR_FULL / 2)
+    if (zstart + nzeros == IP6ADDR_FULL / 2 && bp < bend - 1)
       *bp++ = ':';                /* trailing "::" */
   }
-  for (i += nzeros; i < awords; i++)
-    bp += sprintf(bp, ":%x", (((unsigned)ap[2*i]) << 8) + ap[2*i+1]);
+  for (i += nzeros; i < awords; i++) {
+    n = snprintf(bp, bend - bp, ":%x", (((unsigned)ap[2*i]) << 8) + ap[2*i+1]);
+    if (n < 0 || n >= bend - bp) { bp = bend - 1; break; }
+    bp += n;
+  }
   for (; i < IP6ADDR_FULL / 2; i++) {
+    if (bp >= bend - 2) { bp = bend - 1; break; }
     *bp++ = ':';
     *bp++ = '0';
   }
