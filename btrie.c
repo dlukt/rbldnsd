@@ -586,6 +586,13 @@ bit(unsigned b)
 static inline unsigned
 count_bits(tbm_bitmap_t v)
 {
+#if defined(__GNUC__) && defined(__POPCNT__)
+  /* Use builtin popcount if hardware support is available */
+  if (sizeof(v) <= sizeof(unsigned int))
+    return __builtin_popcount(v);
+  else
+    return __builtin_popcountl(v);
+#else
   /* Count set bits in parallel. */
   /* v = (v & 0x5555...) + ((v >> 1) & 0x5555...); */
   v -= (v >> 1) & (tbm_bitmap_t)~0UL/3;
@@ -599,6 +606,7 @@ count_bits(tbm_bitmap_t v)
   return (v + (v >> 8)) & 0x0ff;
 #else
   return (v * (tbm_bitmap_t)(~0UL/255)) >> ((sizeof(tbm_bitmap_t) - 1) * 8);
+#endif
 #endif
 }
 
