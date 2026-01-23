@@ -889,19 +889,28 @@ static sigset_t ssempty; /* empty set */
 
 static void setup_signals(void) {
   struct sigaction sa;
-  memset(&sa, 0, sizeof(sa));
-  sa.sa_handler = sighandler;
+
   sigemptyset(&ssblock);
-  sigemptyset(&ssempty);
-  sigaction(SIGHUP, &sa, NULL);
   sigaddset(&ssblock, SIGHUP);
-  sigaction(SIGALRM, &sa, NULL);
   sigaddset(&ssblock, SIGALRM);
 #ifndef NO_STATS
-  sigaction(SIGUSR1, &sa, NULL);
   sigaddset(&ssblock, SIGUSR1);
-  sigaction(SIGUSR2, &sa, NULL);
   sigaddset(&ssblock, SIGUSR2);
+#endif
+  sigaddset(&ssblock, SIGTERM);
+  sigaddset(&ssblock, SIGINT);
+
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_handler = sighandler;
+  sa.sa_mask = ssblock;
+
+  sigemptyset(&ssempty);
+
+  sigaction(SIGHUP, &sa, NULL);
+  sigaction(SIGALRM, &sa, NULL);
+#ifndef NO_STATS
+  sigaction(SIGUSR1, &sa, NULL);
+  sigaction(SIGUSR2, &sa, NULL);
 #endif
   sigaction(SIGTERM, &sa, NULL);
   sigaction(SIGINT, &sa, NULL);

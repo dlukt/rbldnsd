@@ -12,3 +12,8 @@
 **Vulnerability:** Missing validation of `ancount`, `nscount`, and `arcount` in `parsequery` allowed malformed queries (e.g., non-empty Answer section) to be processed.
 **Learning:** Even if extra fields are ignored, failing to validate that they are empty (as required by RFC for Queries) violates the principle of "Fail Securely" and strict protocol compliance.
 **Prevention:** Explicitly validate that unused sections (Answer, Authority) are empty in query parsers to reject malformed or potentially malicious packets early.
+
+## 2026-01-23 - Signal Handling Race Condition
+**Vulnerability:** A race condition in signal handling allowed concurrent signals to overwrite the `signalled` state variable, causing signals (like `SIGTERM` or `SIGHUP`) to be lost.
+**Learning:** Signal handlers using `read-modify-write` operations on shared variables must block other signals to ensure atomicity. `volatile` is not enough for RMW operations.
+**Prevention:** Always use `sa_mask` in `sigaction` to block all handled signals during the execution of any signal handler, and ensuring all relevant signals are included in the mask.
