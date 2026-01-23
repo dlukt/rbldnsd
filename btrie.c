@@ -586,8 +586,8 @@ bit(unsigned b)
 static inline unsigned
 count_bits(tbm_bitmap_t v)
 {
-#if defined(__GNUC__) && defined(__POPCNT__)
-  /* Use builtin popcount if hardware support is available */
+#if defined(__GNUC__)
+  /* Use builtin popcount if available */
   if (sizeof(v) <= sizeof(unsigned int))
     return __builtin_popcount(v);
   else
@@ -651,8 +651,14 @@ high_bits(unsigned n)
 static inline int
 prefixes_equal(const btrie_oct_t *pfx1, const btrie_oct_t *pfx2, unsigned len)
 {
-  return (memcmp(pfx1, pfx2, len / 8) == 0
-          && ((pfx1[len / 8] ^ pfx2[len / 8]) & high_bits(len % 8)) == 0);
+  unsigned nbytes = len / 8;
+  unsigned i;
+  /* Optimization: Use manual inline loop instead of memcmp to avoid function call
+   * overhead for small, variable-length comparisons in tight lookup loops. */
+  for (i = 0; i < nbytes; i++)
+    if (pfx1[i] != pfx2[i])
+      return 0;
+  return ((pfx1[nbytes] ^ pfx2[nbytes]) & high_bits(len % 8)) == 0;
 }
 
 /* determine length of longest common subprefix */
