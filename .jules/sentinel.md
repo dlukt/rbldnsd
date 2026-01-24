@@ -17,3 +17,8 @@
 **Vulnerability:** A race condition in signal handling allowed concurrent signals to overwrite the `signalled` state variable, causing signals (like `SIGTERM` or `SIGHUP`) to be lost.
 **Learning:** Signal handlers using `read-modify-write` operations on shared variables must block other signals to ensure atomicity. `volatile` is not enough for RMW operations.
 **Prevention:** Always use `sa_mask` in `sigaction` to block all handled signals during the execution of any signal handler, and ensuring all relevant signals are included in the mask.
+
+## 2026-01-24 - Integer Overflow in satoi
+**Vulnerability:** The `satoi` function in `rbldnsd.c` lacked integer overflow checks, allowing large numeric inputs to wrap around. This could allow an attacker (or accidental configuration) to pass very large values for UID/GID or ports that wrap to privileged values (e.g., UID 0 or port 53).
+**Learning:** Manual string-to-integer conversion loops must always verify that `n * 10 + digit` does not exceed `INT_MAX` before performing the operation, as signed integer overflow is undefined behavior in C.
+**Prevention:** Use standard library functions like `strtol` (with range checks) or implement explicit overflow detection logic: `if (n > INT_MAX / 10 || (n == INT_MAX / 10 && d > INT_MAX % 10))`.
