@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -151,8 +152,11 @@ static int do_reload(int do_fork);
 static int satoi(const char *s) {
   int n = 0;
   if (*s < '0' || *s > '9') return -1;
-  do n = n * 10 + (*s++ - '0');
-  while (*s >= '0' && *s <= '9');
+  do {
+    int d = *s++ - '0';
+    if (n > INT_MAX / 10 || (n == INT_MAX / 10 && d > INT_MAX % 10)) return -1;
+    n = n * 10 + d;
+  } while (*s >= '0' && *s <= '9');
   return *s ? -1 : n;
 }
 
