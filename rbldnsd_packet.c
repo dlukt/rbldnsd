@@ -130,8 +130,16 @@ parsequery(struct dnspacket *pkt, unsigned qlen,
       return 0;
     /* lowercase it */
     ++q;			/* length */
-    do *d++ = dns_dnlc(*q);	/* lowercase each char */
-    while(++q < e);		/* until end of label */
+    while (q + 4 <= e) {
+      d[0] = dns_dnlc(q[0]);
+      d[1] = dns_dnlc(q[1]);
+      d[2] = dns_dnlc(q[2]);
+      d[3] = dns_dnlc(q[3]);
+      d += 4;
+      q += 4;
+    }
+    while (q < e)
+      *d++ = dns_dnlc(*q++);
   }
   /* d points to qDN terminator now */
   qry->q_dnlen = d - qry->q_dn + 1;
