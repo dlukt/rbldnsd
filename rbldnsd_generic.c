@@ -337,7 +337,9 @@ ds_generic_dump(const struct dataset *ds,
       fprintf(f, "A\t%u.%u.%u.%u\n", d[0], d[1], d[2], d[3]);
       break;
     case NSQUERY_TXT:
-      fprintf(f, "TXT\t\"%.*s\"\n", *d, d + 1); /*XXX quotes */
+      fprintf(f, "TXT\t");
+      write_escaped_string(f, (const char*)(d + 1), *d);
+      putc('\n', f);
       break;
     case NSQUERY_MX:
       dns_dntop(d + 3, name, sizeof(name));

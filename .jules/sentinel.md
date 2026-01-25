@@ -22,3 +22,8 @@
 **Vulnerability:** The `satoi` function in `rbldnsd.c` lacked integer overflow checks, allowing large numeric inputs to wrap around. This could allow an attacker (or accidental configuration) to pass very large values for UID/GID or ports that wrap to privileged values (e.g., UID 0 or port 53).
 **Learning:** Manual string-to-integer conversion loops must always verify that `n * 10 + digit` does not exceed `INT_MAX` before performing the operation, as signed integer overflow is undefined behavior in C.
 **Prevention:** Use standard library functions like `strtol` (with range checks) or implement explicit overflow detection logic: `if (n > INT_MAX / 10 || (n == INT_MAX / 10 && d > INT_MAX % 10))`.
+
+## 2026-01-25 - Zone Dump Injection via Unescaped Strings
+**Vulnerability:** `ds_generic_dump` and `dump_a_txt` failed to properly escape quotes and backslashes when dumping TXT records to BIND format. This allowed Zone File Injection where a crafted record could inject new lines/records or corrupt the zone data when the dump was reloaded.
+**Learning:** When generating structured output (like BIND zone files), simply wrapping strings in quotes is insufficient. Special characters (quotes, backslashes) must be escaped to prevent the consumer from misinterpreting the boundaries.
+**Prevention:** Implement and use a dedicated `write_escaped_string` helper function that strictly escapes `"` and `\` characters according to the target format specification (RFC 1035).
