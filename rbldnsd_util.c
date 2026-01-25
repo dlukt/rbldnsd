@@ -439,6 +439,20 @@ dump_ip6range(const ip6oct_t *beg, const ip6oct_t *end, const char *rr,
   }
 }
 
+void write_escaped_string(FILE *f, const char *str, unsigned len) {
+  const char *p = str;
+  const char *e = str + len;
+  putc('"', f);
+  while (p < e) {
+    if (*p == '"' || *p == '\\') {
+      putc('\\', f);
+    }
+    putc(*p, f);
+    p++;
+  }
+  putc('"', f);
+}
+
 void
 dump_a_txt(const char *name, const char *rr,
            const char *subst, const struct dataset *ds, FILE *f) {
@@ -450,14 +464,9 @@ dump_a_txt(const char *name, const char *rr,
     unsigned sl = txtsubst(sb, rr + 4, subst, ds);
     fprintf(f, "%s\tA\t%u.%u.%u.%u\n", name, a[0], a[1], a[2], a[3]);
     if (sl) {
-      char *p, *n;
-      sb[sl] = '\0';
-      fprintf(f, "\tTXT\t\"");
-      for(p = sb; (n = strchr(p, '"')) != NULL; p = n + 1) {
-        fwrite(p, 1, n - p, f);
-        putc('\\', f); putc('"', f);
-      }
-      fprintf(f, "%s\"\n", p);
+      fprintf(f, "\tTXT\t");
+      write_escaped_string(f, sb, sl);
+      putc('\n', f);
     }
   }
 }

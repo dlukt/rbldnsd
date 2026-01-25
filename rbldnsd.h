@@ -375,6 +375,8 @@ char *ememdup(const void *buf, unsigned size);
 int vssprintf(char *buf, int bufsz, const char *fmt, va_list ap);
 int PRINTFLIKE(3, 4) ssprintf(char *buf, int bufsz, const char *fmt, ...);
 
+void write_escaped_string(FILE *f, const char *str, unsigned len);
+
 /* a helper to shrink an array */
 /* some malloc implementations may return NULL on realloc()
  * even if newsize is smaller than current size, so deal with
