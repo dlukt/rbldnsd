@@ -153,13 +153,25 @@ int ip6mask(const ip6oct_t *ap, ip6oct_t *bp, unsigned n, unsigned bits) {
   return r;
 }
 
+/* Fast hex conversion to avoid snprintf overhead.
+ * Appends :<val> in hex to bp. */
+static char *ip6_hex(char *bp, unsigned val) {
+  static const char hex[] = "0123456789abcdef";
+  *bp++ = ':';
+  if (val >= 0x1000) *bp++ = hex[(val >> 12) & 0xf];
+  if (val >= 0x100)  *bp++ = hex[(val >> 8) & 0xf];
+  if (val >= 0x10)   *bp++ = hex[(val >> 4) & 0xf];
+  *bp++ = hex[val & 0xf];
+  return bp;
+}
+
 const char *ip6atos(const ip6oct_t *ap, unsigned an) {
+  /* static buffer is large enough for full address: 39 chars + null */
   static char buf[(4+1)*8+1];
   char *const bend = buf + sizeof(buf);
   unsigned awords = an / 2;
   char *bp = buf;
   unsigned nzeros = 0, zstart = 0, i;
-  int n;
 
   if (awords > IP6ADDR_FULL / 2)
     awords = IP6ADDR_FULL / 2;
@@ -180,9 +192,7 @@ const char *ip6atos(const ip6oct_t *ap, unsigned an) {
   }
 
   for (i = 0; i < zstart; i++) {
-    n = snprintf(bp, bend - bp, ":%x", (((unsigned)ap[2*i]) << 8) + ap[2*i+1]);
-    if (n < 0 || n >= bend - bp) { bp = bend - 1; break; }
-    bp += n;
+    bp = ip6_hex(bp, (((unsigned)ap[2*i]) << 8) + ap[2*i+1]);
   }
   if (nzeros && bp < bend - 1) {
     *bp++ = ':';
@@ -192,12 +202,9 @@ const char *ip6atos(const ip6oct_t *ap, unsigned an) {
       *bp++ = ':';                /* trailing "::" */
   }
   for (i += nzeros; i < awords; i++) {
-    n = snprintf(bp, bend - bp, ":%x", (((unsigned)ap[2*i]) << 8) + ap[2*i+1]);
-    if (n < 0 || n >= bend - bp) { bp = bend - 1; break; }
-    bp += n;
+    bp = ip6_hex(bp, (((unsigned)ap[2*i]) << 8) + ap[2*i+1]);
   }
   for (; i < IP6ADDR_FULL / 2; i++) {
-    if (bp >= bend - 2) { bp = bend - 1; break; }
     *bp++ = ':';
     *bp++ = '0';
   }
