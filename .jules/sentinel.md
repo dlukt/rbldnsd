@@ -27,3 +27,8 @@
 **Vulnerability:** `ds_generic_dump` and `dump_a_txt` failed to properly escape quotes and backslashes when dumping TXT records to BIND format. This allowed Zone File Injection where a crafted record could inject new lines/records or corrupt the zone data when the dump was reloaded.
 **Learning:** When generating structured output (like BIND zone files), simply wrapping strings in quotes is insufficient. Special characters (quotes, backslashes) must be escaped to prevent the consumer from misinterpreting the boundaries.
 **Prevention:** Implement and use a dedicated `write_escaped_string` helper function that strictly escapes `"` and `\` characters according to the target format specification (RFC 1035).
+
+## 2026-01-26 - OOB Read in btrie.c prefixes_equal
+**Vulnerability:** `prefixes_equal` in `btrie.c` contained an off-by-one out-of-bounds read when comparing prefixes with length multiple of 8. It accessed `pfx[nbytes]` where `nbytes = len/8`, which is one byte past the end of the buffer.
+**Learning:** Manual loop optimizations replacing standard functions (like `memcmp`) must carefully handle boundary conditions. Implicit assumptions that "last byte access" is always safe (because of masking) are false if the index is out of bounds.
+**Prevention:** When implementing manual buffer comparisons, explicit checks for exact length matches should be performed before accessing the "next" byte/element to avoid OOB reads.

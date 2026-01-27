@@ -658,6 +658,7 @@ prefixes_equal(const btrie_oct_t *pfx1, const btrie_oct_t *pfx2, unsigned len)
   for (i = 0; i < nbytes; i++)
     if (pfx1[i] != pfx2[i])
       return 0;
+  if ((len % 8) == 0) return 1;
   return ((pfx1[nbytes] ^ pfx2[nbytes]) & high_bits(len % 8)) == 0;
 }
 
