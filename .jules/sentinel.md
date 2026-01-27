@@ -32,3 +32,8 @@
 **Vulnerability:** `prefixes_equal` in `btrie.c` contained an off-by-one out-of-bounds read when comparing prefixes with length multiple of 8. It accessed `pfx[nbytes]` where `nbytes = len/8`, which is one byte past the end of the buffer.
 **Learning:** Manual loop optimizations replacing standard functions (like `memcmp`) must carefully handle boundary conditions. Implicit assumptions that "last byte access" is always safe (because of masking) are false if the index is out of bounds.
 **Prevention:** When implementing manual buffer comparisons, explicit checks for exact length matches should be performed before accessing the "next" byte/element to avoid OOB reads.
+
+## 2026-01-26 - OOB Read in btrie.c extract_bits
+**Vulnerability:** `extract_bits` in `btrie.c` unconditionally read `prefix[pos/8 + 1]` to form a 16-bit integer for shifting, causing an out-of-bounds read when extracting bits from the last byte of a buffer.
+**Learning:** Bit manipulation routines that read multiple bytes at once for efficiency must explicit check if the "extra" bytes are actually needed and within bounds.
+**Prevention:** Conditionally perform the second memory read only if the bit extraction spans across the byte boundary (`pos % 8 + nbits > 8`).
