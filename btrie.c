@@ -629,8 +629,12 @@ extract_bits(const btrie_oct_t *prefix, unsigned pos, unsigned nbits)
   if (nbits == 0)
     return 0;
   else {
-    unsigned v = (prefix[pos / 8] << 8) + prefix[pos / 8 + 1];
-    return (v >> (16 - nbits - pos % 8)) & ((1U << nbits) - 1);
+    unsigned shift = pos % 8;
+    unsigned idx = pos / 8;
+    unsigned v = prefix[idx] << 8;
+    if (shift + nbits > 8)
+      v += prefix[idx + 1];
+    return (v >> (16 - nbits - shift)) & ((1U << nbits) - 1);
   }
 }
 
