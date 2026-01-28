@@ -802,7 +802,8 @@ break;
   if (pidfile) {
     int fdpid;
     char buf[40];
-    c = sprintf(buf, "%ld\n", (long)getpid());
+    c = snprintf(buf, sizeof(buf), "%ld\n", (long)getpid());
+    if (c >= (int)sizeof(buf)) c = sizeof(buf) - 1;
     fdpid = open(pidfile, O_CREAT|O_WRONLY|O_TRUNC, 0644);
     if (fdpid < 0 || write(fdpid, buf, c) < c)
       error(errno, "unable to write pidfile");
