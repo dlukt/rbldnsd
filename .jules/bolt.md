@@ -5,3 +5,7 @@
 ## 2024-05-23 - [Loop Unrolling in String Processing]
 **Learning:** Manual loop unrolling (4-way) in byte-processing loops like `dns_dntol` can still yield measurable speedups (~15%) even on modern compilers with `-O2`, especially for tight loops involving table lookups.
 **Action:** Look for other byte-level string processing loops (e.g., in `dns_dntop`) that could benefit from unrolling.
+
+## 2024-05-24 - [Lookup Table for Character Classification]
+**Learning:** Replacing `switch`/`if` logic with a 256-byte lookup table in `dns_dntop` yielded a ~35% speedup. Even for simple classification (safe/special/octal-escape), eliminating branches in tight string processing loops is highly effective.
+**Action:** Identify other character classification loops that rely on multiple comparisons and consider replacing them with precomputed tables.

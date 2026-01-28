@@ -4,6 +4,25 @@
 
 #include "dns.h"
 
+static const unsigned char char_type[] = {
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  2, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+};
+
 unsigned dns_dntop(const unsigned char *dn, char *dst, unsigned dstsiz) {
   char *d = dst;
   char *m = dst + dstsiz - 1;
@@ -22,33 +41,27 @@ unsigned dns_dntop(const unsigned char *dn, char *dst, unsigned dstsiz) {
       return 0;
     if (dst != d) *d++ = '.';
     do {
-      switch((c = *dn++)) {
-      case '"':
-      case '.':
-      case ';':
-      case '\\':
-      /* Special modifiers in zone files. */
-      case '@':
-      case '$':
+      c = *dn++;
+      switch(char_type[c]) {
+      case 0: /* safe */
+        if (d >= m)
+          return 0;
+        *d++ = c;
+        break;
+      case 1: /* special */
         if (d + 1 >= m)
           return 0;
         *d++ = '\\';
         *d++ = c;
         break;
-      default:
-        if (c <= 0x20 || c >= 0x7f) {
-          if (d + 3 >= m)
-            return 0;
-          *d++ = '\\';
-          *d++ = '0' + (c / 100);
-          *d++ = '0' + ((c % 100) / 10);
-          *d++ = '0' + (c % 10);
-        }
-        else {
-          if (d >= m)
-            return 0;
-          *d++ = c;
-        }
+      default: /* non-printable */
+        if (d + 3 >= m)
+          return 0;
+        *d++ = '\\';
+        *d++ = '0' + (c / 100);
+        *d++ = '0' + ((c % 100) / 10);
+        *d++ = '0' + (c % 10);
+        break;
       }
     } while(--n);
   } while((n = *dn++) != 0);
