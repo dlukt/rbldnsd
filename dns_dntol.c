@@ -30,10 +30,19 @@ unsigned dns_dntol(const unsigned char *srcdn, unsigned char *dstdn) {
   unsigned c;
   const unsigned char *s = srcdn;
   while((c = (*dstdn++ = *s++)) != 0) {
-    do {
-      *dstdn++ = dns_dnlc(*s);
-      ++s;
-    } while(--c);
+    /* optimization: unroll loop 4 times */
+    while(c >= 4) {
+      dstdn[0] = dns_dnlc(s[0]);
+      dstdn[1] = dns_dnlc(s[1]);
+      dstdn[2] = dns_dnlc(s[2]);
+      dstdn[3] = dns_dnlc(s[3]);
+      dstdn += 4;
+      s += 4;
+      c -= 4;
+    }
+    while(c--) {
+      *dstdn++ = dns_dnlc(*s++);
+    }
   }
   return (unsigned)(s - srcdn);
 }
