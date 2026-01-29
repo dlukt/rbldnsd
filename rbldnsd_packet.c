@@ -886,11 +886,12 @@ checkrr_present(register unsigned char *c, register unsigned char *e,
   const unsigned char dtp1 = dtp >> 8, dtp2 = dtp & 255;
   unsigned t;
 
-#define nextRR(c) ((c) + 12 + (c)[11])
+#define rrDLEN(c) (((unsigned)((c)[10]) << 8) | (c)[11])
+#define nextRR(c) ((c) + 12 + rrDLEN(c))
 #define hasRR(c,e) ((c) < (e))
 #define sameRRT(c,dtp1,dtp2) ((c)[2] == (dtp1) && (c)[3] == (dtp2))
 #define sameDATA(c,dsz,data) \
-   ((c)[11] == (dsz) && memcmp((c)+12, (data), (dsz)) == 0)
+   (rrDLEN(c) == (dsz) && memcmp((c)+12, (data), (dsz)) == 0)
 #define rrTTL(c) ((c)+6)
 
   for(;;) {
