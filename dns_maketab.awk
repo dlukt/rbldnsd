@@ -32,7 +32,7 @@ n != "" && /^}/ {
   print " static char buf[20];"
   print " switch(code) {" s
   print " }"
-  print " sprintf(buf, \"" n "%d\", code);"
+  print " snprintf(buf, sizeof(buf), \"" n "%d\", code);"
   print " return buf;"
   print "}"
   #print "#endif /* " n "tab */"
