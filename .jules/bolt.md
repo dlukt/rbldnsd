@@ -9,3 +9,7 @@
 ## 2024-05-24 - [Lookup Table for Character Classification]
 **Learning:** Replacing `switch`/`if` logic with a 256-byte lookup table in `dns_dntop` yielded a ~35% speedup. Even for simple classification (safe/special/octal-escape), eliminating branches in tight string processing loops is highly effective.
 **Action:** Identify other character classification loops that rely on multiple comparisons and consider replacing them with precomputed tables.
+
+## 2024-05-25 - [Table Lookup vs Arithmetic in String Escaping]
+**Learning:** Replacing integer division/modulo with a precomputed 3-byte lookup table (`dec_octets`) for decimal escaping in `dns_dntop` yielded a ~2.5x speedup for non-printable characters. Also, replacing `switch` with explicit `if/else` checks for the common case proved faster than the compiler-generated jump table/comparisons for this specific distribution.
+**Action:** When optimizing string escaping or formatting loops, prioritize table lookups over arithmetic, and verify if `switch` statements are generating optimal code for the expected data distribution.
