@@ -2,6 +2,7 @@
  * dotted-quad form.
  */
 
+#include <string.h>
 #include "ip4addr.h"
 
 static const char oct_digits[256][4] = {
@@ -17,15 +18,13 @@ static const unsigned char oct_lens[256] = {
 static char *oct(char *s, unsigned char o, char e) {
   const char *d = oct_digits[o];
   unsigned char len = oct_lens[o];
-  if (len == 3) {
-      *s++ = d[0]; *s++ = d[1]; *s++ = d[2];
-  } else if (len == 2) {
-      *s++ = d[0]; *s++ = d[1];
-  } else {
-      *s++ = d[0];
-  }
-  *s++ = e;
-  return s;
+  /* oct_digits is [256][4], so d always points to a valid 4-byte array.
+   * s points to a buffer of size 16, which is large enough to hold the maximum
+   * IP string "255.255.255.255" (15 chars + null).
+   * Unconditionally copying 4 bytes is safe and avoids branches. */
+  memcpy(s, d, 4);
+  s[len] = e;
+  return s + len + 1;
 }
 
 /* return printable representation of ip4addr like inet_ntoa() */

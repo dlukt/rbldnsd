@@ -13,3 +13,7 @@
 ## 2024-05-25 - [Table Lookup vs Arithmetic in String Escaping]
 **Learning:** Replacing integer division/modulo with a precomputed 3-byte lookup table (`dec_octets`) for decimal escaping in `dns_dntop` yielded a ~2.5x speedup for non-printable characters. Also, replacing `switch` with explicit `if/else` checks for the common case proved faster than the compiler-generated jump table/comparisons for this specific distribution.
 **Action:** When optimizing string escaping or formatting loops, prioritize table lookups over arithmetic, and verify if `switch` statements are generating optimal code for the expected data distribution.
+
+## 2024-05-26 - [Branchless String Copying]
+**Learning:** For small, fixed-width string conversions (like IP octets), unconditional copying (e.g., via `memcpy`) from a null-padded lookup table is significantly faster (~1.8x) than conditional logic, provided the destination buffer is large enough to handle the maximum write.
+**Action:** When optimizing string serialization of small integers or fixed-width types, look for opportunities to replace branches with unconditional writes using padded lookup tables.
