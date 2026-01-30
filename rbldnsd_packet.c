@@ -328,6 +328,7 @@ int replypacket(struct dnspacket *pkt, unsigned qlen, struct zone *zone) {
   /* from now on, we see (almost?) valid dns query, should reply */
 
 #define setnonauth(h) (h[p_f1] &= ~pf1_aa)
+#define settrunc(h) (h[p_f1] |= pf1_tc)
 #define _refuse(code,lab) \
     do { setnonauth(h); h[p_f2] = (code); goto lab; } while(0)
 #define refuse(code) _refuse(code, err_nz)
@@ -706,7 +707,7 @@ static int addrr_soa(struct dnspacket *pkt, const struct zone *zone, int auth) {
   }
   if (!dnc_final(pkt, zsoa->data, zsoa->size, zsoa->jump, zsoa->jend)) {
     if (!auth)
-      setnonauth(pkt->p_buf); /* non-auth answer as we can't fit the record */
+      settrunc(pkt->p_buf); /* truncated answer as we can't fit the record */
     return 0;
   }
   /* for AUTHORITY section for NXDOMAIN etc replies, use minttl as TTL */
@@ -945,7 +946,7 @@ void addrr_any(struct dnspacket *pkt, unsigned dtp,
   if (!ttl) return; /* if RR is already present, do nothing */
 
   if (!fit(pkt, c, 12 + dsz) || pkt->p_buf[p_ancnt2] == 255) {
-    setnonauth(pkt->p_buf); /* non-auth answer as we can't fit the record */
+    settrunc(pkt->p_buf); /* truncated answer as we can't fit the record */
     return;
   }
   *c++ = 192; *c++ = p_hdrsize;	/* jump after header: query DN */
