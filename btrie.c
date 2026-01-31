@@ -631,9 +631,9 @@ extract_bits(const btrie_oct_t *prefix, unsigned pos, unsigned nbits)
   else {
     unsigned shift = pos % 8;
     unsigned idx = pos / 8;
-    unsigned v = prefix[idx] << 8;
-    if (shift + nbits > 8)
-      v += prefix[idx + 1];
+    /* Optimization: unconditional read of next byte avoids branch.
+     * Safe because all callers ensure prefix buffer is padded. */
+    unsigned v = (prefix[idx] << 8) | prefix[idx + 1];
     return (v >> (16 - nbits - shift)) & ((1U << nbits) - 1);
   }
 }
@@ -1821,7 +1821,7 @@ test_count_bits_from()
 static void
 test_extract_bits()
 {
-  static btrie_oct_t prefix[] = { 0xff, 0x55, 0xaa, 0x00 };
+  static btrie_oct_t prefix[] = { 0xff, 0x55, 0xaa, 0x00, 0, 0, 0, 0, 0, 0, 0, 0 };
   unsigned i;
 
   for (i = 0; i < 32; i++)
@@ -1948,6 +1948,7 @@ static const btrie_oct_t numbered_bytes[] = {
   0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
   0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
   0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
+  0, 0, 0, 0, 0, 0, 0, 0 /* padding */
 };
 
 static void

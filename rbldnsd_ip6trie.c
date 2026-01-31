@@ -38,7 +38,7 @@ ds_ip6trie_line(struct dataset *ds, char *s, struct dsctx *dsc)
   const char *rr;
   unsigned rrl;
   int bits, excl, non_zero_host;
-  ip6oct_t addr[IP6ADDR_FULL];
+  ip6oct_t addr[IP6ADDR_FULL+8];
 
   /* "::" can not be a valid start to a default RR setting ("invalid A
    * RR") but it can be a valid beginning to an ip6 address
@@ -63,6 +63,8 @@ ds_ip6trie_line(struct dataset *ds, char *s, struct dsctx *dsc)
     dswarn(dsc, "invalid address");
     return 1;
   }
+  /* zero-fill padding */
+  memset(addr + IP6ADDR_FULL, 0, 8);
   non_zero_host = ip6mask(addr, addr, IP6ADDR_FULL, bits);
   if (non_zero_host && !accept_in_cidr) {
     dswarn(dsc, "invalid range (non-zero host part)");
@@ -153,13 +155,13 @@ dump_cb(const btrie_oct_t *prefix, unsigned len, const void *data, int post,
 {
   struct dump_context *ctx = user_data;
   unsigned nb = (len + 7) / 8;
-  ip6oct_t addr[IP6ADDR_FULL];
+  ip6oct_t addr[IP6ADDR_FULL+8];
 
   if (nb > IP6ADDR_FULL)
     return;                     /* paranoia */
   /* pad prefix to full ip6 length */
   memcpy(addr, prefix, nb);
-  memset(addr + nb, 0, IP6ADDR_FULL - nb);
+  memset(addr + nb, 0, IP6ADDR_FULL - nb + 8);
 
   if (post == 0) {
     /* pre order visit (before child nodes are visited) */

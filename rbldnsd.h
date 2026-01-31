@@ -65,7 +65,7 @@ struct dnsqinfo {	/* qi */
   int qi_ip4valid;			/* true if qi_ip4 is valid */
   int qi_ip6valid;			/* true if qi_ip6 is valid */
   ip4addr_t qi_ip4;			/* parsed IP4 address */
-  ip6oct_t qi_ip6[IP6ADDR_FULL];	/* parsed IP6 address */
+  ip6oct_t qi_ip6[IP6ADDR_FULL+8];	/* parsed IP6 address (padded for fast bit extraction) */
 };
 
 #define PACK32(b,n) ((b)[0]=(n)>>24,(b)[1]=(n)>>16,(b)[2]=(n)>>8,(b)[3]=(n))

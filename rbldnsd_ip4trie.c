@@ -31,7 +31,7 @@ static int
 ds_ip4trie_line(struct dataset *ds, char *s, struct dsctx *dsc) {
   struct dsdata *dsd = ds->ds_dsd;
   ip4addr_t a;
-  btrie_oct_t addr_bytes[4];
+  btrie_oct_t addr_bytes[4+8];
   int bits;
   const char *rr;
   unsigned rrl;
@@ -81,6 +81,8 @@ ds_ip4trie_line(struct dataset *ds, char *s, struct dsctx *dsc) {
   }
 
   ip4unpack(addr_bytes, a);
+  /* zero-fill padding for fast bit extraction */
+  memset(addr_bytes + 4, 0, 8);
   switch(btrie_add_prefix(dsd->btrie, addr_bytes, bits, rr)) {
   case BTRIE_OKAY:
     return 1;
@@ -101,12 +103,14 @@ static int
 ds_ip4trie_query(const struct dataset *ds, const struct dnsqinfo *qi,
                  struct dnspacket *pkt) {
   const char *rr;
-  btrie_oct_t addr_bytes[4];
+  btrie_oct_t addr_bytes[4+8];
 
   if (!qi->qi_ip4valid) return 0;
   check_query_overwrites(qi);
 
   ip4unpack(addr_bytes, qi->qi_ip4);
+  /* zero-fill padding for fast bit extraction */
+  memset(addr_bytes + 4, 0, 8);
   rr = btrie_lookup(ds->ds_dsd->btrie, addr_bytes, 32);
 
   if (!rr)
