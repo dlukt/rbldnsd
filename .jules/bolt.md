@@ -17,3 +17,7 @@
 ## 2024-05-26 - [Branchless String Copying]
 **Learning:** For small, fixed-width string conversions (like IP octets), unconditional copying (e.g., via `memcpy`) from a null-padded lookup table is significantly faster (~1.8x) than conditional logic, provided the destination buffer is large enough to handle the maximum write.
 **Action:** When optimizing string serialization of small integers or fixed-width types, look for opportunities to replace branches with unconditional writes using padded lookup tables.
+
+## 2024-05-27 - [Branchless Bit Extraction via Padding]
+**Learning:** `extract_bits` in `btrie.c` contained a conditional branch `if (shift + nbits > 8)` to safely read the next byte. On 64-bit systems (where `TBM_STRIDE` is 5), this branch is often mispredicted. By ensuring all input buffers (keys) are padded with at least 1 byte (rounded up to 8 for alignment) at all call sites, we can unconditionally read the next byte `(prefix[idx] << 8) | prefix[idx + 1]`, eliminating the branch.
+**Action:** When optimizing low-level bit/byte processing loops, check if conditional boundary checks can be eliminated by padding the input data structure, but be meticulous about updating ALL call sites to provide the padded buffer.

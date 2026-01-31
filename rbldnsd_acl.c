@@ -94,7 +94,7 @@ ds_acl_line(struct dataset *ds, char *s, struct dsctx *dsc) {
   struct dsdata *dsd = ds->ds_dsd;
   char *tail;
   ip4addr_t ip4addr;
-  ip6oct_t addr[IP6ADDR_FULL];
+  ip6oct_t addr[IP6ADDR_FULL+8];
   const char *ipstring;
   struct btrie *trie;
   int bits;
@@ -130,12 +130,14 @@ ds_acl_line(struct dataset *ds, char *s, struct dsctx *dsc) {
     }
     trie = dsd->ip4_trie;
     ip4unpack(addr, ip4addr);
+    memset(addr + 4, 0, 8); /* padding */
     ipstring = ip4atos(ip4addr);
     s = tail;
   }
 #ifndef NO_IPv6
   else if ((bits = ip6cidr(s, addr, &tail)) >= 0 && VALID_TAIL(tail[0])) {
     int non_zero_host = ip6mask(addr, addr, IP6ADDR_FULL, bits);
+    memset(addr + IP6ADDR_FULL, 0, 8); /* padding */
     if (non_zero_host && !accept_in_cidr) {
       dswarn(dsc, "invalid range (non-zero host part)");
       return 1;
