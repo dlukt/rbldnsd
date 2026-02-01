@@ -149,15 +149,16 @@ const struct dstype *ds_types[] = {
 
 static int do_reload(int do_fork);
 
-static int satoi(const char *s) {
-  int n = 0;
-  if (*s < '0' || *s > '9') return -1;
-  do {
-    int d = *s++ - '0';
-    if (n > INT_MAX / 10 || (n == INT_MAX / 10 && d > INT_MAX % 10)) return -1;
-    n = n * 10 + d;
-  } while (*s >= '0' && *s <= '9');
-  return *s ? -1 : n;
+static int parse_arg_uint(const char *s, unsigned *valp) {
+  char *end;
+  unsigned long v;
+  if (*s < '0' || *s > '9') return 0;
+  errno = 0;
+  v = strtoul(s, &end, 10);
+  if (*s == '\0' || *end != '\0') return 0;
+  if (errno == ERANGE || v > UINT_MAX) return 0;
+  *valp = (unsigned)v;
+  return 1;
 }
 
 static void NORETURN usage(int exitcode) {
@@ -382,7 +383,7 @@ initsockets(const char *bindaddr[MAXSOCK], int nba, int UNUSED family) {
 
     if (!serv || !*serv)
       sin.sin_port = port;
-    else if ((x = satoi(serv)) > 0 && x <= 0xffff)
+    else if (parse_arg_uint(serv, (unsigned*)&x) && x > 0 && x <= 0xffff)
       sin.sin_port = htons(x);
     else if (!(se = getservbyname(serv, "udp")))
       error(0, "unknown service in `%.60s'", ba);
@@ -771,10 +772,11 @@ break;
   if (!user)
     p = NULL;
   else {
+    unsigned u;
     if ((p = strchr(user, ':')) != NULL)
       *p++ = '\0';
-    if ((c = satoi(user)) >= 0)
-      uid = c, gid = c;
+    if (parse_arg_uint(user, &u))
+      uid = u, gid = u;
     else {
       struct passwd *pw = getpwnam(user);
       if (!pw)
@@ -787,8 +789,9 @@ break;
   if (!uid)
     error(0, "daemon should not run as root, specify -u option");
   if (p) {
-    if ((c = satoi(p)) >= 0)
-      gid = c;
+    unsigned u;
+    if (parse_arg_uint(p, &u))
+      gid = u;
     else {
       struct group *gr = getgrnam(p);
       if (!gr)
