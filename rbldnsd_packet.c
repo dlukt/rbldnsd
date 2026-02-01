@@ -175,41 +175,57 @@ parsequery(struct dnspacket *pkt, unsigned qlen,
   return 1;
 }
 
+static inline int parse_octet(const unsigned char **q, unsigned *val) {
+  const unsigned char *p = *q;
+  unsigned len = *p;
+  unsigned o;
+
+  /* Optimization: prioritize 3-digit labels (common in IPv4) and use
+   * bitwise checks to avoid branching on individual digits. */
+  if (len == 3) {
+    unsigned d1 = p[1] - '0';
+    unsigned d2 = p[2] - '0';
+    unsigned d3 = p[3] - '0';
+    if ((d1 > 9) | (d2 > 9) | (d3 > 9)) return 0;
+    o = d1 * 100 + d2 * 10 + d3;
+    if (o > 255) return 0;
+    *val = o;
+    *q = p + 4;
+    return 1;
+  } else if (len == 1) {
+    unsigned d = p[1] - '0';
+    if (d > 9) return 0;
+    *val = d;
+    *q = p + 2;
+    return 1;
+  } else if (len == 2) {
+    unsigned d1 = p[1] - '0';
+    unsigned d2 = p[2] - '0';
+    if ((d1 > 9) | (d2 > 9)) return 0;
+    *val = d1 * 10 + d2;
+    *q = p + 3;
+    return 1;
+  }
+  return 0;
+}
+
 static int dntoip4addr(const unsigned char *q, ip4addr_t *ap) {
   unsigned o, a = 0;
-#define oct(q,o)					\
-    switch(*q) {					\
-    case 1: {						\
-      unsigned d = q[1] - '0';			\
-      if (d > 9) return 0;				\
-      o = d;						\
-      break;						\
-    }							\
-    case 2: {						\
-      unsigned d1 = q[1] - '0';			\
-      unsigned d2 = q[2] - '0';			\
-      if (d1 > 9 || d2 > 9) return 0;		\
-      o = d1 * 10 + d2;				\
-      break;						\
-    }							\
-    case 3: {						\
-      unsigned d1 = q[1] - '0';			\
-      unsigned d2 = q[2] - '0';			\
-      unsigned d3 = q[3] - '0';			\
-      if (d1 > 9 || d2 > 9 || d3 > 9) return 0;	\
-      o = d1 * 100 + d2 * 10 + d3;			\
-      if (o > 255) return 0;			\
-      break;						\
-    }							\
-    default: return 0;					\
-    }
-  oct(q,o); a |= o;  q += *q + 1;
-  oct(q,o); a |= o << 8;  q += *q + 1;
-  oct(q,o); a |= o << 16;  q += *q + 1;
-  oct(q,o); a |= o << 24;
+
+  if (!parse_octet(&q, &o)) return 0;
+  a |= o;
+
+  if (!parse_octet(&q, &o)) return 0;
+  a |= o << 8;
+
+  if (!parse_octet(&q, &o)) return 0;
+  a |= o << 16;
+
+  if (!parse_octet(&q, &o)) return 0;
+  a |= o << 24;
+
   *ap = a;
   return 1;
-#undef oct
 }
 
 #define HEXVAL(c) \
