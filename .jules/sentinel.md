@@ -12,3 +12,8 @@
 **Vulnerability:** The internal macro `hasRR(c,e)` in `rbldnsd_packet.c` defined as `((c) < (e))` allowed the loop to continue even if `c` was less than 12 bytes from the end of the buffer `e`. This caused subsequent macros `rrDLEN(c)` (reading `c[10]`) and `nextRR(c)` to read uninitialized memory beyond the valid data range, potentially leading to logic errors or reading garbage data.
 **Learning:** Checking for mere existence of a pointer within bounds (`c < e`) is insufficient when parsing structures with fixed headers. One must verify the *entire* header size is available (`c + header_size <= e`) before accessing any fields.
 **Prevention:** Always check `ptr + sizeof(header) <= end` before dereferencing struct fields in binary parsers.
+
+## 2026-05-20 - Signed Integer Limits on Privileges
+**Vulnerability:** The custom integer parser `satoi` in `rbldnsd.c` used signed arithmetic (`int`), preventing the use of UIDs/GIDs larger than `INT_MAX` (2^31-1). This artificial limitation hindered security hardening in environments using large, unprivileged UIDs (e.g., containers, LDAP).
+**Learning:** Legacy integer parsing logic often defaults to `int`, silently truncating or rejecting valid large unsigned values required for modern system identifiers.
+**Prevention:** Use `strtoul` or explicit `unsigned` arithmetic when parsing system identifiers like UIDs, GIDs, or ports, and validate against `UINT_MAX`.
