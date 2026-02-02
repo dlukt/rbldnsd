@@ -879,8 +879,11 @@ static int addrr_ns(struct dnspacket *pkt, const struct zone *zone, int auth) {
     pkt->p_buf[p_nscnt2] += zone->z_nns;
     pkt->p_buf[p_arcnt2] += zone->z_nglue;
   }
-  else if (!dnc_final(pkt, zns->data, zns->nssize, zns->jump, zns->nsjend))
+  else if (!dnc_final(pkt, zns->data, zns->nssize, zns->jump, zns->nsjend)) {
+    if (!auth)
+      settrunc(pkt->p_buf);
     return 0;
+  }
   else
     /* we can't overflow p_ancnt2 (255 max) because addrr_ns(auth=0)
      * is called before all other answers will be collected,
