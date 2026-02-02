@@ -17,3 +17,8 @@
 **Vulnerability:** The custom integer parser `satoi` in `rbldnsd.c` used signed arithmetic (`int`), preventing the use of UIDs/GIDs larger than `INT_MAX` (2^31-1). This artificial limitation hindered security hardening in environments using large, unprivileged UIDs (e.g., containers, LDAP).
 **Learning:** Legacy integer parsing logic often defaults to `int`, silently truncating or rejecting valid large unsigned values required for modern system identifiers.
 **Prevention:** Use `strtoul` or explicit `unsigned` arithmetic when parsing system identifiers like UIDs, GIDs, or ports, and validate against `UINT_MAX`.
+
+## 2026-05-25 - Missing TC Bit on NS Query Truncation
+**Vulnerability:** `rbldnsd` returned REFUSED (RCODE 5) without setting the Truncation (TC) bit when the Answer section of an NS query (for the zone itself) exceeded the packet size limit, preventing clients from falling back to TCP.
+**Learning:** Failing to set the TC bit on truncation can lead to availability issues (DoS) as clients treat the response as a fatal error instead of a hint to retry with a larger buffer.
+**Prevention:** Always ensure `settrunc` (or equivalent) is called when a mandatory section (like Answer) cannot fit in the response packet.
