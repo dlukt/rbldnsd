@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <netinet/in.h>
 #include "rbldnsd.h"
 #include "btrie.h"
 
@@ -31,7 +32,10 @@ static int
 ds_ip4trie_line(struct dataset *ds, char *s, struct dsctx *dsc) {
   struct dsdata *dsd = ds->ds_dsd;
   ip4addr_t a;
-  btrie_oct_t addr_bytes[4+8];
+  union {
+    btrie_oct_t bytes[12];
+    ip4addr_t words[3];
+  } key;
   int bits;
   const char *rr;
   unsigned rrl;
@@ -80,10 +84,12 @@ ds_ip4trie_line(struct dataset *ds, char *s, struct dsctx *dsc) {
       return 0;
   }
 
-  ip4unpack(addr_bytes, a);
-  /* zero-fill padding for fast bit extraction */
-  memset(addr_bytes + 4, 0, 8);
-  switch(btrie_add_prefix(dsd->btrie, addr_bytes, bits, rr)) {
+  /* See ds_ip4trie_query for explanation of this optimization */
+  key.words[0] = htonl(a);
+  key.words[1] = 0;
+  key.words[2] = 0;
+
+  switch(btrie_add_prefix(dsd->btrie, key.bytes, bits, rr)) {
   case BTRIE_OKAY:
     return 1;
   case BTRIE_DUPLICATE_PREFIX:
@@ -103,15 +109,22 @@ static int
 ds_ip4trie_query(const struct dataset *ds, const struct dnsqinfo *qi,
                  struct dnspacket *pkt) {
   const char *rr;
-  btrie_oct_t addr_bytes[4+8];
+  union {
+    btrie_oct_t bytes[12];
+    ip4addr_t words[3];
+  } key;
 
   if (!qi->qi_ip4valid) return 0;
   check_query_overwrites(qi);
 
-  ip4unpack(addr_bytes, qi->qi_ip4);
-  /* zero-fill padding for fast bit extraction */
-  memset(addr_bytes + 4, 0, 8);
-  rr = btrie_lookup(ds->ds_dsd->btrie, addr_bytes, 32);
+  /* Unpack ip4addr (little endian) into big endian bytes.
+   * key.words[0] = MSB ... LSB (in memory on big endian, or after bswap on little endian).
+   * This avoids ip4unpack shifts and memset overhead. */
+  key.words[0] = htonl(qi->qi_ip4);
+  key.words[1] = 0;
+  key.words[2] = 0;
+
+  rr = btrie_lookup(ds->ds_dsd->btrie, key.bytes, 32);
 
   if (!rr)
     return 0;
