@@ -425,11 +425,15 @@ int replypacket(struct dnspacket *pkt, unsigned qlen, struct zone *zone) {
     found = NSQUERY_FOUND;
 
     /* NS and SOA with auth=0 will only touch answer section */
-    if ((qi.qi_tflag & NSQUERY_SOA) && !addrr_soa(pkt, zone, 0))
-      found = 0;
+    if ((qi.qi_tflag & NSQUERY_SOA) && !addrr_soa(pkt, zone, 0)) {
+      if (!(pkt->p_buf[p_f1] & pf1_tc))
+        found = 0;
+    }
     else
-    if ((qi.qi_tflag & NSQUERY_NS) && !addrr_ns(pkt, zone, 0))
-      found = 0;
+    if ((qi.qi_tflag & NSQUERY_NS) && !addrr_ns(pkt, zone, 0)) {
+      if (!(pkt->p_buf[p_f1] & pf1_tc))
+        found = 0;
+    }
     if (!found) {
       pkt->p_cur = pkt->p_sans;
       h[p_ancnt2] = h[p_nscnt2] = 0;
@@ -546,7 +550,7 @@ struct dncompr {	/* DN compression structure */
   struct dnjump *jump;		/* current jump ptr (array of jumps) */
 };
 
-#define CACHEBUF_SIZE (DNS_MAXPACKET-p_hdrsize-4)
+#define CACHEBUF_SIZE (DNS_EDNS0_MAXPACKET-p_hdrsize-4)
 /* maxpacket minus header minus (class+type) */
 
 /* initialize compression/cache structures */
