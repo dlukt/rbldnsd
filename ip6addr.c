@@ -25,6 +25,14 @@ int ip6prefix(const char *s, ip6oct_t ap[IP6ADDR_FULL], char **np) {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   };
   unsigned bytes = 0;     /* number of bytes we filled in ap so far */
   int zstart = -1;        /* location of "::", if any */
@@ -46,8 +54,10 @@ int ip6prefix(const char *s, ip6oct_t ap[IP6ADDR_FULL], char **np) {
     unsigned v = 0;		/* 2-byte (4 hex digit) field */
     const char *ss = s;		/* save `s' value */
 
-    while ((*s & '\x80') == 0) {
-      int nibble = hex_table[(unsigned)*s];
+    /* Optimization: use a 256-byte lookup table to avoid branches and
+     * handle all character values including extended ASCII safely. */
+    for (;;) {
+      int nibble = hex_table[(unsigned char)*s];
       if (nibble < 0)
         break;                  /* not a hex digit */
       v = (v << 4) + nibble;
