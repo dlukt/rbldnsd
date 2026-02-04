@@ -228,26 +228,67 @@ static int dntoip4addr(const unsigned char *q, ip4addr_t *ap) {
   return 1;
 }
 
-#define HEXVAL(c) \
-  ((unsigned)((c) - '0') <= 9 ? (c) - '0' : \
-   (unsigned)((c) - 'a') <= 5 ? (c) - 'a' + 10 : 255)
+static const unsigned char hex_table[256] = {
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+    0,   1,   2,   3,   4,   5,   6,   7,   8,   9, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255,  10,  11,  12,  13,  14,  15, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+};
 
 static int dntoip6addr(const unsigned char *q, ip6oct_t ap[IP6ADDR_FULL]) {
-  unsigned o1, o2, c, v;
-  for(c = IP6ADDR_FULL; c; ) {
-    if (*q++ != 1) return 0;
-    v = HEXVAL(*q);
-    if (v > 15) return 0;
-    o2 = v; q++;
+  unsigned o1, o2, v;
+  /* Optimized unrolled loop using lookup table.
+   * caller verifies that we have exactly 32 labels and total length 64,
+   * so mathematically all labels must be length 1.
+   * However, we check it here to be safe and robust against malformed input or logic errors.
+   * q points to: len(1), char, len(1), char...
+   */
 
-    if (*q++ != 1) return 0;
-    v = HEXVAL(*q);
-    if (v > 15) return 0;
-    o1 = v; q++;
+#define STEPO(idx) \
+    do { \
+      if (q[0] != 1) return 0; \
+      v = hex_table[q[1]]; \
+      if (v > 15) return 0; \
+      o2 = v; \
+      if (q[2] != 1) return 0; \
+      v = hex_table[q[3]]; \
+      if (v > 15) return 0; \
+      o1 = v; \
+      ap[idx] = (o1 << 4) | o2; \
+      q += 4; \
+    } while(0)
 
-    ap[--c] = (o1 << 4) | o2;
-  }
+  STEPO(15);
+  STEPO(14);
+  STEPO(13);
+  STEPO(12);
+  STEPO(11);
+  STEPO(10);
+  STEPO(9);
+  STEPO(8);
+  STEPO(7);
+  STEPO(6);
+  STEPO(5);
+  STEPO(4);
+  STEPO(3);
+  STEPO(2);
+  STEPO(1);
+  STEPO(0);
+
   return 1;
+#undef STEPO
 }
 
 static const ip6oct_t ip6mapped_pfx[12] =
