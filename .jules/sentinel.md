@@ -22,3 +22,8 @@
 **Vulnerability:** `rbldnsd` returned REFUSED (RCODE 5) without setting the Truncation (TC) bit when the Answer section of an NS query (for the zone itself) exceeded the packet size limit, preventing clients from falling back to TCP.
 **Learning:** Failing to set the TC bit on truncation can lead to availability issues (DoS) as clients treat the response as a fatal error instead of a hint to retry with a larger buffer.
 **Prevention:** Always ensure `settrunc` (or equivalent) is called when a mandatory section (like Answer) cannot fit in the response packet.
+
+## 2026-10-27 - Out-of-Bounds Read via Truncated RR Payload
+**Vulnerability:** The `hasRR` macro in `rbldnsd_packet.c` verified that the 12-byte header fit in the buffer, but failed to verify that the variable-length payload (specified by RDLENGTH) also fit. This allowed the iterator to proceed with a truncated record, leading to an out-of-bounds read when comparing record data.
+**Learning:** Verifying header presence is necessary but not sufficient for variable-length records. The entire record (header + payload) must be validated against buffer boundaries before processing.
+**Prevention:** In iterative parsers, ensure the loop condition validates `current_ptr + header_size + payload_len <= end_ptr`.

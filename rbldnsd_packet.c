@@ -912,7 +912,7 @@ checkrr_present(register unsigned char *c, register unsigned char *e,
 
 #define rrDLEN(c) (((unsigned)((c)[10]) << 8) | (c)[11])
 #define nextRR(c) ((c) + 12 + rrDLEN(c))
-#define hasRR(c,e) ((c) + 12 <= (e))
+#define hasRR(c,e) ((c) + 12 <= (e) && (c) + 12 + rrDLEN(c) <= (e))
 #define sameRRT(c,dtp1,dtp2) ((c)[2] == (dtp1) && (c)[3] == (dtp2))
 #define sameDATA(c,dsz,data) \
    (rrDLEN(c) == (dsz) && memcmp((c)+12, (data), (dsz)) == 0)
