@@ -21,3 +21,7 @@
 ## 2024-05-27 - [Branchless Bit Extraction via Padding]
 **Learning:** `extract_bits` in `btrie.c` contained a conditional branch `if (shift + nbits > 8)` to safely read the next byte. On 64-bit systems (where `TBM_STRIDE` is 5), this branch is often mispredicted. By ensuring all input buffers (keys) are padded with at least 1 byte (rounded up to 8 for alignment) at all call sites, we can unconditionally read the next byte `(prefix[idx] << 8) | prefix[idx + 1]`, eliminating the branch.
 **Action:** When optimizing low-level bit/byte processing loops, check if conditional boundary checks can be eliminated by padding the input data structure, but be meticulous about updating ALL call sites to provide the padded buffer.
+
+## 2024-05-28 - [Hex Escape Sequence Greediness]
+**Learning:** In C string literals, `\x` is greedy and consumes all following valid hex digits (e.g., `\x07example` is parsed as `\x07e` followed by `x`, `a`...). This caused severe benchmark data corruption where domain name lengths were interpreted as 126 instead of 7.
+**Action:** When constructing test strings with hex escapes, always break the string literal (e.g., `"\x07" "example"`) or use octal escapes (e.g., `\007example`) to prevent accidental merging with subsequent characters.
