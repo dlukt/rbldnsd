@@ -27,3 +27,8 @@
 **Vulnerability:** The `hasRR` macro in `rbldnsd_packet.c` verified that the 12-byte header fit in the buffer, but failed to verify that the variable-length payload (specified by RDLENGTH) also fit. This allowed the iterator to proceed with a truncated record, leading to an out-of-bounds read when comparing record data.
 **Learning:** Verifying header presence is necessary but not sufficient for variable-length records. The entire record (header + payload) must be validated against buffer boundaries before processing.
 **Prevention:** In iterative parsers, ensure the loop condition validates `current_ptr + header_size + payload_len <= end_ptr`.
+
+## 2026-02-05 - Partial Parsing of Truncated Zone Lines
+**Vulnerability:** The zone file parser `readdslines` in `rbldnsd_zones.c` detected truncated lines (exceeding buffer size or missing newline at EOF) but proceeded to process the initial partial chunk. This allowed incomplete and potentially misleading data to be loaded into the server (e.g., a truncated IP or domain).
+**Learning:** Warning about invalid input is insufficient for security; the application must actively reject or ignore data known to be incomplete to prevent integrity violations.
+**Prevention:** Explicitly skip or discard data when truncation or read errors are detected, rather than falling through to processing logic.

@@ -331,8 +331,9 @@ readdslines(struct istream *sp, struct dataset *ds, struct dsctx *dsc) {
     if (*eol == '\n')
       --eol;
     else {
-      dswarn(dsc, "long line (truncated)");
+      dswarn(dsc, "long line (truncated) - ignored");
       noeol = 1; /* mark it to be read above */
+      continue;
     }
     SKIPSPACE(line);
     while(eol >= line && ISSPACE(*eol))
