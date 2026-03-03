@@ -325,8 +325,10 @@ ds_generic_dump(const struct dataset *ds,
 	dn[ldn[0]] = '\0';
         dns_dntop(dn, name, sizeof(name));
       }
-      else
-        strcpy(name, "@");
+      else {
+        name[0] = '@';
+        name[1] = '\0';
+      }
     }
     else
       name[0] = '\0';
