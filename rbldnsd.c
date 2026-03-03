@@ -697,7 +697,13 @@ break;
 
       chroot_socket_size = strlen(rootdir) + strlen("/systemd_notify") + 1;
       chroot_socket = emalloc(chroot_socket_size);
-      snprintf(chroot_socket, chroot_socket_size, "%s/systemd_notify", rootdir);
+      {
+        int n = snprintf(chroot_socket, chroot_socket_size, "%s/systemd_notify", rootdir);
+        if (n < 0 || (size_t)n >= chroot_socket_size) {
+          free(chroot_socket);
+          error(0, "unable to construct chrooted systemd notify socket path");
+        }
+      }
       /* create an empty file to be used as a target for the bind mount */
       if ((fd = open(chroot_socket, O_WRONLY|O_CREAT|O_TRUNC, 0644)) < 0) {
         error(0, "creation of %s failed", chroot_socket);
