@@ -492,7 +492,7 @@ int replypacket(struct dnspacket *pkt, unsigned qlen, struct zone *zone) {
   if (found & NSQUERY_ADDPEER) {
 #ifdef NO_IPv6
     addrr_a_txt(pkt, qi.qi_tflag, pkt->p_substrr,
-                inet_ntoa(((struct sockaddr_in*)pkt->p_peer)->sin_addr),
+                ip4atos(ntohl(((struct sockaddr_in*)pkt->p_peer)->sin_addr.s_addr)),
                 pkt->p_substds);
 #else
     char subst[IPSIZE];
@@ -1089,7 +1089,7 @@ void logreply(const struct dnspacket *pkt, FILE *flog, int flushlog) {
   }
 #else
   if (bufsz > 0) {
-    n = ssprintf(cp, bufsz, "%s", inet_ntoa(((struct sockaddr_in*)pkt->p_peer)->sin_addr));
+    n = ssprintf(cp, bufsz, "%s", ip4atos(ntohl(((struct sockaddr_in*)pkt->p_peer)->sin_addr.s_addr)));
     cp += n; bufsz -= n;
   }
 #endif
