@@ -27,6 +27,12 @@
 static int addrr_soa(struct dnspacket *pkt, const struct zone *zone, int auth);
 static int addrr_ns(struct dnspacket *pkt, const struct zone *zone, int auth);
 static int version_req(struct dnspacket *pkt, const struct dnsquery *qry);
+#ifdef NO_IPv6
+static void ip4atos_buf(ip4addr_t a, char *buf, unsigned bufsz) {
+  ssprintf(buf, bufsz, "%u.%u.%u.%u",
+           (a >> 24) & 255, (a >> 16) & 255, (a >> 8) & 255, a & 255);
+}
+#endif
 
 /* DNS packet:
  * bytes comment */
@@ -491,9 +497,11 @@ int replypacket(struct dnspacket *pkt, unsigned qlen, struct zone *zone) {
 
   if (found & NSQUERY_ADDPEER) {
 #ifdef NO_IPv6
-    addrr_a_txt(pkt, qi.qi_tflag, pkt->p_substrr,
-                inet_ntoa(((struct sockaddr_in*)pkt->p_peer)->sin_addr),
-                pkt->p_substds);
+    char subst[IPSIZE];
+    ip4addr_t a = ntohl(((const struct sockaddr_in*)pkt->p_peer)->sin_addr.s_addr);
+    /* Security: avoid inet_ntoa() static buffer races in concurrent queries. */
+    ip4atos_buf(a, subst, sizeof(subst));
+    addrr_a_txt(pkt, qi.qi_tflag, pkt->p_substrr, subst, pkt->p_substds);
 #else
     char subst[IPSIZE];
     if (getnameinfo(pkt->p_peer, pkt->p_peerlen,
@@ -1089,7 +1097,11 @@ void logreply(const struct dnspacket *pkt, FILE *flog, int flushlog) {
   }
 #else
   if (bufsz > 0) {
-    n = ssprintf(cp, bufsz, "%s", inet_ntoa(((struct sockaddr_in*)pkt->p_peer)->sin_addr));
+    char addr[IPSIZE];
+    ip4addr_t a = ntohl(((const struct sockaddr_in*)pkt->p_peer)->sin_addr.s_addr);
+    /* Security: avoid inet_ntoa() static buffer races in concurrent logging. */
+    ip4atos_buf(a, addr, sizeof(addr));
+    n = ssprintf(cp, bufsz, "%s", addr);
     cp += n; bufsz -= n;
   }
 #endif
