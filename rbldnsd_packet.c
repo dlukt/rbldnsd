@@ -491,9 +491,12 @@ int replypacket(struct dnspacket *pkt, unsigned qlen, struct zone *zone) {
 
   if (found & NSQUERY_ADDPEER) {
 #ifdef NO_IPv6
-    addrr_a_txt(pkt, qi.qi_tflag, pkt->p_substrr,
-                inet_ntoa(((struct sockaddr_in*)pkt->p_peer)->sin_addr),
-                pkt->p_substds);
+    char subst[INET_ADDRSTRLEN];
+    /* Security: avoid inet_ntoa() static buffer races under concurrent queries. */
+    if (!inet_ntop(AF_INET, &((struct sockaddr_in*)pkt->p_peer)->sin_addr,
+                   subst, sizeof(subst)))
+      subst[0] = '\0';
+    addrr_a_txt(pkt, qi.qi_tflag, pkt->p_substrr, subst, pkt->p_substds);
 #else
     char subst[IPSIZE];
     if (getnameinfo(pkt->p_peer, pkt->p_peerlen,
@@ -1089,7 +1092,11 @@ void logreply(const struct dnspacket *pkt, FILE *flog, int flushlog) {
   }
 #else
   if (bufsz > 0) {
-    n = ssprintf(cp, bufsz, "%s", inet_ntoa(((struct sockaddr_in*)pkt->p_peer)->sin_addr));
+    char addr[INET_ADDRSTRLEN];
+    /* Security: inet_ntop() is thread-safe unlike inet_ntoa(). */
+    n = ssprintf(cp, bufsz, "%s",
+                 inet_ntop(AF_INET, &((struct sockaddr_in*)pkt->p_peer)->sin_addr,
+                           addr, sizeof(addr)) ? addr : "?");
     cp += n; bufsz -= n;
   }
 #endif
