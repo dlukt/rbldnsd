@@ -491,11 +491,11 @@ int replypacket(struct dnspacket *pkt, unsigned qlen, struct zone *zone) {
 
   if (found & NSQUERY_ADDPEER) {
 #ifdef NO_IPv6
-    char subst[INET_ADDRSTRLEN];
-    /* Security: avoid inet_ntoa() static buffer races under concurrent queries. */
-    if (inet_ntop(AF_INET, &((struct sockaddr_in*)pkt->p_peer)->sin_addr,
-                  subst, sizeof(subst)) == NULL)
-      subst[0] = '\0';
+    char subst[IPSIZE];
+    unsigned a = ntohl(((const struct sockaddr_in*)pkt->p_peer)->sin_addr.s_addr);
+    /* Security: avoid inet_ntoa() static buffer races in concurrent queries. */
+    ssprintf(subst, sizeof(subst), "%u.%u.%u.%u",
+             (a >> 24) & 255, (a >> 16) & 255, (a >> 8) & 255, a & 255);
     addrr_a_txt(pkt, qi.qi_tflag, pkt->p_substrr, subst, pkt->p_substds);
 #else
     char subst[IPSIZE];
@@ -1092,11 +1092,11 @@ void logreply(const struct dnspacket *pkt, FILE *flog, int flushlog) {
   }
 #else
   if (bufsz > 0) {
-    char addr[INET_ADDRSTRLEN];
-    /* Security: inet_ntop() is thread-safe unlike inet_ntoa(). */
-    if (inet_ntop(AF_INET, &((struct sockaddr_in*)pkt->p_peer)->sin_addr,
-                  addr, sizeof(addr)) == NULL)
-      addr[0] = '\0';
+    char addr[IPSIZE];
+    unsigned a = ntohl(((const struct sockaddr_in*)pkt->p_peer)->sin_addr.s_addr);
+    /* Security: avoid inet_ntoa() static buffer races in concurrent logging. */
+    ssprintf(addr, sizeof(addr), "%u.%u.%u.%u",
+             (a >> 24) & 255, (a >> 16) & 255, (a >> 8) & 255, a & 255);
     n = ssprintf(cp, bufsz, "%s", addr);
     cp += n; bufsz -= n;
   }
