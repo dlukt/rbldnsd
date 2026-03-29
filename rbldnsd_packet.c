@@ -493,8 +493,8 @@ int replypacket(struct dnspacket *pkt, unsigned qlen, struct zone *zone) {
 #ifdef NO_IPv6
     char subst[INET_ADDRSTRLEN];
     /* Security: avoid inet_ntoa() static buffer races under concurrent queries. */
-    if (!inet_ntop(AF_INET, &((struct sockaddr_in*)pkt->p_peer)->sin_addr,
-                   subst, sizeof(subst)))
+    if (inet_ntop(AF_INET, &((struct sockaddr_in*)pkt->p_peer)->sin_addr,
+                  subst, sizeof(subst)) == NULL)
       subst[0] = '\0';
     addrr_a_txt(pkt, qi.qi_tflag, pkt->p_substrr, subst, pkt->p_substds);
 #else
@@ -1094,9 +1094,10 @@ void logreply(const struct dnspacket *pkt, FILE *flog, int flushlog) {
   if (bufsz > 0) {
     char addr[INET_ADDRSTRLEN];
     /* Security: inet_ntop() is thread-safe unlike inet_ntoa(). */
-    n = ssprintf(cp, bufsz, "%s",
-                 inet_ntop(AF_INET, &((struct sockaddr_in*)pkt->p_peer)->sin_addr,
-                           addr, sizeof(addr)) ? addr : "?");
+    if (inet_ntop(AF_INET, &((struct sockaddr_in*)pkt->p_peer)->sin_addr,
+                  addr, sizeof(addr)) == NULL)
+      addr[0] = '\0';
+    n = ssprintf(cp, bufsz, "%s", addr);
     cp += n; bufsz -= n;
   }
 #endif
